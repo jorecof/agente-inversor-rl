@@ -4,7 +4,7 @@
 
 En cada instante de decisión el agente recibe un estado $s_t$, selecciona una acción $a_t$, el portafolio se rebalancea, el mercado evoluciona y se obtiene una recompensa $r_{t+1}$.
 
-### 2.1 Estado observado por el agente
+### 1.1 Estado observado por el agente
 
 La observación DQN tiene **7 componentes**. Los cinco primeros provienen únicamente de precios disponibles hasta el instante $t$ y se estandarizan usando exclusivamente estadísticas del conjunto de entrenamiento.
 
@@ -20,7 +20,7 @@ La observación DQN tiene **7 componentes**. Los cinco primeros provienen única
 
 Los indicadores de mercado se estandarizan con media y desviación calculadas **solo en train**, se congelan para validación/prueba y se limitan a `[-10, 10]`. No se usan ventanas centradas ni relleno hacia atrás.
 
-### 2.2 Espacio de acciones
+### 1.2 Espacio de acciones
 
 El espacio es `Discrete(3)`:
 
@@ -34,7 +34,7 @@ La granularidad 0/50/100 % es deliberada: mantiene el problema interpretable, pe
 
 ---
 
-## 3. Datos y separación temporal
+## 2. Datos y separación temporal
 
 La instantánea contiene **1.827 velas diarias BTC/USDT** de Binance entre 2020 y 2024. Después del calentamiento de 20 observaciones, la separación usada en el experimento es:
 
@@ -54,7 +54,7 @@ El simulador **ejecuta idealizadamente al cierre $t$ después de observar ese ci
 
 ---
 
-## 4. Entorno de inversión y costos
+## 3. Entorno de inversión y costos
 
 Capital inicial: **100.000 USDT**. Comisión: **0,10 %** del valor monetario realmente negociado.
 
@@ -70,7 +70,7 @@ El entorno usa la interfaz Gymnasium `reset/step` y fue validado con `check_env`
 
 ---
 
-## 5. Diseño e iteración de la recompensa
+## 4. Diseño e iteración de la recompensa
 
 La actividad exige una iteración real de diseño, por lo que se entrenaron **dos funciones distintas** antes de abrir el periodo de prueba.
 
@@ -98,7 +98,7 @@ Un riesgo de *reward hacking* es que una penalización de pérdidas incentive pe
 
 ---
 
-## 6. Algoritmos
+## 5. Algoritmos
 
 ### Q-learning tabular
 
@@ -138,7 +138,7 @@ Se entrenan tres semillas (`7`, `21`, `42`) para no depender de una única inici
 
 ---
 
-## 7. Selección y evaluación *held-out*
+## 6. Selección y evaluación *held-out*
 
 Se comparan cuatro candidatos en validación: Q-learning/DQN × recompensa log/risk. La regla fijada es:
 
@@ -172,7 +172,7 @@ La conclusión correcta no es que RL “ganó”, sino que el agente aprendió p
 
 ---
 
-## 8. Limitaciones, no estacionariedad y comportamiento inesperado
+## 7. Limitaciones, no estacionariedad y comportamiento inesperado
 
 El estudio tiene limitaciones importantes que deben formar parte de la conclusión:
 
@@ -189,13 +189,13 @@ La extensión metodológica prioritaria sería una evaluación **walk-forward**,
 
 ---
 
-## 9. Reflexión individual
+## 8. Reflexión individual
 
 La reflexión completa está en [`REFLEXION_INDIVIDUAL.md`](REFLEXION_INDIVIDUAL.md). En síntesis, el principal aprendizaje es que en Reinforcement Learning financiero la calidad del experimento no puede evaluarse por una sola curva de recompensa: separación temporal, costos, baselines y estabilidad entre semillas cambian la interpretación del resultado.
 
 ---
 
-## 10. Reproducibilidad
+## 9. Reproducibilidad
 
 ### Requisitos
 
@@ -253,7 +253,7 @@ python -m src.export_html --source results/main/INFORME.md --output results/main
 
 ---
 
-## 11. Estructura del repositorio
+## 10. Estructura del repositorio
 
 ```text
 .
@@ -294,7 +294,7 @@ python -m src.export_html --source results/main/INFORME.md --output results/main
 
 ---
 
-## 12. Evidencia ya generada
+## 11. Evidencia ya generada
 
 - `results/main/equity_drawdown.png`: capital y drawdown frente a baselines.
 - `results/main/positions.png`: evolución de la exposición del agente seleccionado.
@@ -308,7 +308,7 @@ python -m src.export_html --source results/main/INFORME.md --output results/main
 
 ---
 
-## 13. Referencias principales
+## 12. Referencias principales
 
 - Sutton, R. S., & Barto, A. G. (2018). *Reinforcement Learning: An Introduction* (2.ª ed.).
 - Mnih, V., et al. (2015). *Human-level control through deep reinforcement learning*. Nature, 518.
