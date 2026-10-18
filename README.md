@@ -1,4 +1,18 @@
+# Proyecto final — Agente inversor con Aprendizaje por Refuerzo
 
+**Presentado por:**
+
+Ernesto Ilich Contreras Hernandez.
+
+Jesus Gabriel Castillo Malaver.
+
+Noel Eduardo Perez Barrios.
+
+Paola Andrea Roa Molina.
+
+Ruslan Valery Yaya Chujmanov.
+
+Victor Enrique Cantor Beltran.
 
 ## 1. Formulación del problema como MDP
 
