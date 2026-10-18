@@ -1,34 +1,6 @@
-# Proyecto final — Agente inversor con Aprendizaje por Refuerzo
 
-**Activo:** BTC/USDT (Binance Spot)  
-**Algoritmos:** Q-learning tabular y Deep Q-Network (DQN)  
-**Acciones:** 0 %, 50 % o 100 % del patrimonio expuesto a BTC  
-**Evaluación:** separación temporal entrenamiento → validación → prueba *held-out*  
-**Baselines:** comprar y mantener, agente aleatorio y efectivo  
 
-Este repositorio implementa un entorno de inversión reproducible y compara agentes de Reinforcement Learning con estrategias simples bajo las mismas fechas, capital inicial y costos de transacción. La prioridad metodológica es evitar fuga temporal, congelar la selección antes de la prueba final y reportar resultados favorables y desfavorables sin escoger retrospectivamente la mejor semilla.
-
-> **Resultado principal.** El candidato seleccionado únicamente con validación fue **DQN + recompensa logarítmica**. En el periodo final 2024 obtuvo un retorno medio de **89,49 %**, frente a **111,76 %** de comprar y mantener. El drawdown medio fue **−26,11 %** frente a **−26,15 %** del baseline. Por tanto, en esta ventana el agente **no supera en retorno medio** a comprar y mantener, aunque sí supera ampliamente al agente aleatorio. El resultado negativo frente al baseline principal se conserva porque la prueba final no se utiliza para reajustar el experimento.
-
-El informe completo y las cifras reproducibles están en [`results/main/INFORME.md`](results/main/INFORME.md). También se incluye una versión autónoma en [`results/main/INFORME.html`](results/main/INFORME.html).
-
----
-
-## 1. Correspondencia directa con la rúbrica
-
-| Criterio | Evidencia principal |
-|---|---|
-| **Formulación del problema** | Estado de 7 variables, acciones discretas 0/50/100 %, justificación económica y causalidad temporal en este README, `src/data.py`, `src/environment.py` e `INFORME.md`. |
-| **Entorno de inversión** | Contabilidad con comisión de 0,10 %, Gymnasium, pruebas unitarias, chequeo de causalidad y explicación explícita del supuesto de ejecución al cierre. |
-| **Diseño de recompensa** | Dos versiones: `log` y `risk`; ambas se entrenan, comparan en validación y se documenta el comportamiento inducido. |
-| **Held-out y baselines** | Train/validation/test cronológicos; selección congelada en `selection_frozen.json`; Buy & Hold, aleatorio y efectivo bajo las mismas condiciones. |
-| **Discusión, reflexión y reproducibilidad** | Limitaciones, *reward hacking*, no estacionariedad, variación entre semillas, reflexión individual y comandos reproducibles. |
-
-La matriz detallada de cumplimiento está en [`MATRIZ_RUBRICA.md`](MATRIZ_RUBRICA.md).
-
----
-
-## 2. Formulación del problema como MDP
+## 1. Formulación del problema como MDP
 
 En cada instante de decisión el agente recibe un estado $s_t$, selecciona una acción $a_t$, el portafolio se rebalancea, el mercado evoluciona y se obtiene una recompensa $r_{t+1}$.
 
