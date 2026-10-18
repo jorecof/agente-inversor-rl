@@ -1,0 +1,16 @@
+{
+  "asset": "BTC/USDT",
+  "exchange": "Binance",
+  "interval": "1d",
+  "timestamp_meaning": "Inicio de vela UTC; close disponible al terminar ese d\u00eda",
+  "period": "2020-01-01 a 2024-12-31 inclusive",
+  "rows": 1827,
+  "retrieved_utc": "2026-10-16T19:17:34.747948+00:00",
+  "urls": [
+    "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=1d&startTime=1577836800000&endTime=1735689599999&limit=1000",
+    "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=1d&startTime=1664236800000&endTime=1735689599999&limit=1000"
+  ],
+  "sha256": "e6fd2cbc5efb5876adc084214ec67c1c2f8b190b77a3fe09d8a3e595fcdccfcc",
+  "user_reference": "https://gym-trading-env.readthedocs.io/en/latest/download.html",
+  "method": "REST p\u00fablico de Binance; no se utiliz\u00f3 gym_trading_env.downloader"
+}

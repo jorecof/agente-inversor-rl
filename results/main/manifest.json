@@ -1,0 +1,45 @@
+{
+  "dataset": "data/btcusdt_daily.csv",
+  "sha256": "e6fd2cbc5efb5876adc084214ec67c1c2f8b190b77a3fe09d8a3e595fcdccfcc",
+  "python": "3.9.6 (default, May 22 2026, 11:13:45) \n[Clang 21.0.0 (clang-2100.1.1.101)]",
+  "platform": "macOS-26.3.1-arm64-arm-64bit",
+  "versions": {
+    "numpy": "2.0.2",
+    "pandas": "2.3.3",
+    "torch": "2.8.0",
+    "gymnasium": "0.29.1",
+    "stable-baselines3": "2.3.2",
+    "matplotlib": "3.9.4"
+  },
+  "splits": {
+    "train": {
+      "indices": [
+        0,
+        1083
+      ],
+      "start": "2020-01-21 00:00:00+00:00",
+      "end": "2023-01-08 00:00:00+00:00",
+      "transitions": 1083
+    },
+    "validation": {
+      "indices": [
+        1084,
+        1444
+      ],
+      "start": "2023-01-09 00:00:00+00:00",
+      "end": "2024-01-04 00:00:00+00:00",
+      "transitions": 360
+    },
+    "test": {
+      "indices": [
+        1445,
+        1806
+      ],
+      "start": "2024-01-05 00:00:00+00:00",
+      "end": "2024-12-31 00:00:00+00:00",
+      "transitions": 361
+    }
+  },
+  "selection_rule": "mean(validation_return - 0.5*abs(validation_max_drawdown))",
+  "test_policy": "Congelar selecci\u00f3n antes de evaluar; prueba no selecciona candidatos."
+}

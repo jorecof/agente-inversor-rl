@@ -1,0 +1,16 @@
+{
+  "method": "dqn",
+  "reward": "log",
+  "seeds": [
+    7,
+    21,
+    42
+  ],
+  "validation_score": 0.7948485765999623,
+  "ranking": {
+    "dqn/log": 0.7948485765999623,
+    "dqn/risk": 0.6647568136277847,
+    "qlearning/log": 0.45662814857730544,
+    "qlearning/risk": 0.4544587821447852
+  }
+}
