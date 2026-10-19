@@ -14,6 +14,9 @@ Ruslan Valery Yaya Chujmanov.
 
 Victor Enrique Cantor Beltran.
 
+
+> **Versión 2 (rama `mejoras-v2`).** Se añadió una tercera recompensa contra la sobreoperación y episodios de entrenamiento en ventanas aleatorias; ver la sección 6 bis y [`DECISIONES.md`](DECISIONES.md), que explica el porqué de cada decisión del proyecto. La versión 1 sigue siendo reproducible sin cambios.
+
 ## 1. Formulación del problema como MDP
 
 En cada instante de decisión el agente recibe un estado $s_t$, selecciona una acción $a_t$, el portafolio se rebalancea, el mercado evoluciona y se obtiene una recompensa $r_{t+1}$.
@@ -186,6 +189,41 @@ La conclusión correcta no es que RL “ganó”, sino que el agente aprendió p
 
 ---
 
+## 6 bis. Versión 2: iteración adicional de la recompensa
+
+**Qué se observó en validación de v1.** El DQN seleccionado hacía en promedio 159 operaciones en el año de validación (una semilla, 277). La recompensa `risk` penalizaba pérdidas diarias, pero con λ = 10 la penalización resultó casi nula (−1 % diario → 0,001), y el problema dominante no eran las pérdidas, sino la rotación.
+
+**Qué se cambió** (`configs/v2.json`):
+
+1. **Recompensa 3 — `turnover`:** $r_t^{(3)} = 100\,[\log(V_{t+1}/V_t) - \kappa\,|X-B|/V]$, con κ = 0,005. κ se calibró solo con entrenamiento: una ida y vuelta completa cuesta 1,2 %, frente a un movimiento diario mediano de 1,74 % (celda nueva del `eda.ipynb`).
+2. **Ventanas aleatorias en entrenamiento:** episodios de 360 días con inicio aleatorio dentro de train, en lugar de recorrer siempre la misma historia. Validación y prueba no cambian.
+3. 30.000 pasos de DQN (≈ 83 ventanas).
+
+**Validación v2 (DQN, media de 3 semillas):**
+
+| Recompensa | Retorno | Drawdown | Costos | Operaciones | Puntaje |
+|---|---:|---:|---:|---:|---:|
+| log | 52,2 % | −21,6 % | 7.372 | 124,7 | 0,414 |
+| risk | 65,2 % | −23,1 % | 7.610 | 102,7 | 0,536 |
+| **turnover** | **88,7 %** | **−17,0 %** | **3.989** | **65,7** | **0,802** |
+
+Seleccionado y congelado: **DQN + turnover** (`results/v2/selection_frozen.json`).
+
+**Prueba 2024:**
+
+| Estrategia | Retorno medio | Drawdown medio | Costos (USDT) | Operaciones |
+|---|---:|---:|---:|---:|
+| Comprar y mantener | **111,76 %** | −26,15 % | 99,90 | 1,0 |
+| **v2 DQN / turnover** | 67,58 % | **−18,81 %** | 3.524,74 | 48,3 |
+| v1 DQN / log | 89,49 % | −26,11 % | 7.885,40 | 133,0 |
+| Aleatorio | 11,91 % | −35,20 % | 17.416,71 | 283,3 |
+
+v2 redujo el drawdown en 7,3 puntos frente a comprar y mantener y los costos en 55 % frente a v1, a cambio de menos retorno. Sigue sin superar a comprar y mantener, y la dispersión entre semillas sigue siendo alta (18,5 % a 112,5 %). La semilla 7 pasó el 73 % del año en efectivo: es el riesgo de *reward hacking* anticipado para esta recompensa (quedarse fuera para evitar la penalización).
+
+**Advertencia metodológica.** El periodo de prueba ya se había observado en v1, así que v2 no es una evaluación held-out pura: sus cambios se justificaron con validación y entrenamiento, pero sus autores conocían el resultado de prueba anterior. Una evaluación final rigurosa requiere un periodo nuevo (por ejemplo, 2025) o *walk-forward*.
+
+---
+
 ## 7. Limitaciones, no estacionariedad y comportamiento inesperado
 
 El estudio tiene limitaciones importantes que deben formar parte de la conclusión:
@@ -251,6 +289,15 @@ python -m src.train --config configs/default.json --output results/replica_01
 
 El comando entrena 12 modelos (2 algoritmos × 2 recompensas × 3 semillas), selecciona solamente con validación, congela la elección y después ejecuta la prueba y los baselines.
 
+### Ejecutar la versión 2
+
+```bash
+python -m src.train --config configs/v2.json --output results/replica_v2
+python -m src.reevaluate --run results/v2 --output results/auditoria_v2
+```
+
+Reentrenar en otro sistema operativo o con otras versiones de PyTorch puede dar cifras algo distintas; la reevaluación de los modelos guardados en `results/v2/models` reproduce las métricas publicadas. `results/v2` se generó con Python 3.13 en Linux (las versiones quedan en `results/v2/manifest.json`).
+
 ### Reevaluar modelos guardados sin reentrenar
 
 ```bash
@@ -272,7 +319,8 @@ python -m src.export_html --source results/main/INFORME.md --output results/main
 ```text
 .
 ├── configs/
-│   └── default.json
+│   ├── default.json
+│   └── v2.json
 ├── data/
 │   ├── btcusdt_daily.csv
 │   └── btcusdt_daily.metadata.json
@@ -288,6 +336,7 @@ python -m src.export_html --source results/main/INFORME.md --output results/main
 │   │   ├── validation_metrics.csv
 │   │   ├── selection_frozen.json
 │   │   └── *.png
+│   ├── v2/          # misma estructura que main, con 3 recompensas
 │   └── VERIFICACION.md
 ├── src/
 │   ├── agent.py
@@ -299,8 +348,7 @@ python -m src.export_html --source results/main/INFORME.md --output results/main
 │   └── train.py
 ├── tests/
 │   └── test_environment.py
-├── GUION_EXPOSICION.md
-├── MATRIZ_RUBRICA.md
+├── DECISIONES.md
 ├── REFLEXION_INDIVIDUAL.md
 ├── requirements.txt
 └── README.md

@@ -63,7 +63,7 @@ def write_report(out, manifest, cfg, validation, results, selected):
     risk_v = validation[(validation.method == selected['method']) & (validation.reward == 'risk')]
     turn_v = validation[(validation.method == selected['method']) & (validation.reward == 'turnover')]
     turnover_text = "" if turn_v.empty else (
-        f"\n\nLa versión 3 (v2 del proyecto) es r3 = 100 {{{{log[V(t+1)/V(t)] - kappa × |X-B|/V}}}}, con kappa = "
+        f"\n\nLa versión 3 (v2 del proyecto) es r3 = 100 {{log[V(t+1)/V(t)] - kappa × |X-B|/V}}, con kappa = "
         f"{cfg.get('turnover_kappa', 0.005)}. Penaliza la fracción del patrimonio negociada, porque en validación de la "
         f"primera ejecución el problema observado fue la sobreoperación y no las pérdidas diarias. Para "
         f"{labels[selected['method']]}, turnover presentó retorno {turn_v['return'].mean():.2%}, drawdown "
