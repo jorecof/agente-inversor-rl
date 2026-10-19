@@ -46,19 +46,25 @@ def main():
                 "test_policy": "Congelar selección antes de evaluar; prueba no selecciona candidatos."}
     (out/"manifest.json").write_text(json.dumps(manifest, indent=2))
 
-    def env(split, reward):
-        return InvestmentEnv(df, x, *splits[split], initial_capital=cfg["initial_capital"],
-                             cost_rate=cfg["cost_rate"], reward_mode=reward, risk_lambda=cfg["risk_lambda"])
+    rewards = cfg.get("rewards", ["log", "risk"])
 
-    check_env(env("train", "log"), warn=True)
+    def env(split, reward, training=False):
+        # Solo el entorno de entrenamiento usa ventanas aleatorias (v2); validación
+        # y prueba siempre recorren su tramo completo y de forma determinista.
+        length = cfg.get("episode_length") if training else None
+        return InvestmentEnv(df, x, *splits[split], initial_capital=cfg["initial_capital"],
+                             cost_rate=cfg["cost_rate"], reward_mode=reward, risk_lambda=cfg["risk_lambda"],
+                             turnover_kappa=cfg.get("turnover_kappa", 0.005), episode_length=length)
+
+    check_env(env("train", "log", training=True), warn=True)
     candidates, trained = [], {}
     # Entrenamiento y validación: no hay rollout del periodo final en este bucle.
     for kind in ["qlearning", "dqn"]:
-        for reward in ["log", "risk"]:
+        for reward in rewards:
             for seed in cfg["seeds"]:
                 name = f"{kind}_{reward}_{seed}"
                 print("Entrenando", name, flush=True)
-                model, history = train_agent(kind, env("train", reward), cfg, seed, out/"models"/name)
+                model, history = train_agent(kind, env("train", reward, training=True), cfg, seed, out/"models"/name)
                 trained[name] = model
                 if history:
                     pd.DataFrame(history).to_csv(out/f"learning_{name}.csv", index=False)

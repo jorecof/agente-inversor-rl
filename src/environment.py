@@ -9,19 +9,26 @@ class InvestmentEnv(gym.Env):
     weights = (0.0, 0.5, 1.0)
 
     def __init__(self, frame, x, start, end, initial_capital=100000.,
-                 cost_rate=0.001, reward_mode="log", risk_lambda=10.):
+                 cost_rate=0.001, reward_mode="log", risk_lambda=10.,
+                 turnover_kappa=0.005, episode_length=None):
         super().__init__()
         if not 0 <= start < end < len(frame):
             raise ValueError("Intervalo inválido")
         if not 0 <= cost_rate < 1 or initial_capital <= 0:
             raise ValueError("Capital o costo inválido")
-        if reward_mode not in ("log", "risk"):
+        if reward_mode not in ("log", "risk", "turnover"):
             raise ValueError("Recompensa desconocida")
+        if episode_length is not None and not 1 <= episode_length <= end-start:
+            raise ValueError("episode_length debe caber dentro del intervalo")
         self.frame, self.x = frame, np.asarray(x, dtype=np.float32)
         self.prices = frame.close.to_numpy(dtype=float)
         self.start, self.end = int(start), int(end)
         self.initial_capital, self.cost_rate = float(initial_capital), float(cost_rate)
         self.reward_mode, self.risk_lambda = reward_mode, risk_lambda
+        self.turnover_kappa = float(turnover_kappa)
+        # v2: en entrenamiento cada episodio es una ventana aleatoria dentro de
+        # [start, end]; en validación/prueba (None) se recorre el tramo completo.
+        self.episode_length = episode_length
         self.action_space = spaces.Discrete(3)
         # Cinco indicadores, peso actual y drawdown: todo observable hasta t.
         self.observation_space = spaces.Box(
@@ -34,7 +41,14 @@ class InvestmentEnv(gym.Env):
 
     def reset(self, *, seed=None, options=None):
         super().reset(seed=seed)
-        self.t = self.start
+        if self.episode_length is None:
+            self.t, self.episode_end = self.start, self.end
+        else:
+            # Inicio uniforme entre start y end-episode_length (ambos incluidos);
+            # nunca sale del intervalo, así que no cruza a otra partición.
+            self.t = self.start + int(self.np_random.integers(
+                0, self.end-self.start-self.episode_length+1))
+            self.episode_end = self.t + self.episode_length
         self.equity = self.peak = self.initial_capital
         self.risky = self.cost_total = 0.
         self.done = False
@@ -60,18 +74,26 @@ class InvestmentEnv(gym.Env):
         self.equity = cash+self.risky
         net_return = self.equity/before-1
         log_return = np.log(self.equity/before)
-        penalty = self.risk_lambda * min(net_return, 0.)**2 if self.reward_mode == "risk" else 0.
+        turnover = traded/before
+        if self.reward_mode == "risk":
+            penalty = self.risk_lambda * min(net_return, 0.)**2
+        elif self.reward_mode == "turnover":
+            # v2: castiga la fracción del patrimonio negociada, además del costo
+            # real que ya está dentro de log_return. Ataca la sobreoperación.
+            penalty = self.turnover_kappa * turnover
+        else:
+            penalty = 0.
         # Escala fija para facilitar la optimización; no altera el orden de recompensas.
         reward = 100. * (log_return-penalty)
         self.cost_total += cost
         self.peak = max(self.peak, self.equity)
         self.t += 1
-        self.done = self.t >= self.end
+        self.done = self.t >= self.episode_end
         info = {"timestamp": str(self.frame.timestamp.iloc[self.t]),
                 "decision_timestamp": str(self.frame.timestamp.iloc[t]),
                 "equity": self.equity, "action": int(action), "target_weight": w,
                 "actual_weight": self.risky/self.equity, "net_return": net_return,
                 "market_return": market_return, "cost": cost, "cost_total": self.cost_total,
-                "turnover": traded/before, "drawdown": self.equity/self.peak-1,
+                "turnover": turnover, "drawdown": self.equity/self.peak-1,
                 "reward": float(reward), "risk_penalty": penalty}
         return self._obs(), float(reward), self.done, False, info

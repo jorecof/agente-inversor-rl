@@ -61,6 +61,18 @@ def write_report(out, manifest, cfg, validation, results, selected):
                    f"acción {int(worst.action)}, retorno neto {worst.net_return:.2%}.")
     log_v = validation[(validation.method == selected['method']) & (validation.reward == 'log')]
     risk_v = validation[(validation.method == selected['method']) & (validation.reward == 'risk')]
+    turn_v = validation[(validation.method == selected['method']) & (validation.reward == 'turnover')]
+    turnover_text = "" if turn_v.empty else (
+        f"\n\nLa versión 3 (v2 del proyecto) es r3 = 100 {{{{log[V(t+1)/V(t)] - kappa × |X-B|/V}}}}, con kappa = "
+        f"{cfg.get('turnover_kappa', 0.005)}. Penaliza la fracción del patrimonio negociada, porque en validación de la "
+        f"primera ejecución el problema observado fue la sobreoperación y no las pérdidas diarias. Para "
+        f"{labels[selected['method']]}, turnover presentó retorno {turn_v['return'].mean():.2%}, drawdown "
+        f"{turn_v.max_drawdown.mean():.2%}, costos {turn_v.costs.mean():,.2f} y {turn_v.trades.mean():.1f} operaciones medias.")
+    n_cand = validation.groupby(["method", "reward"]).ngroups
+    window = cfg.get("episode_length")
+    episode_text = (f"episodios de {window} pasos que empiezan en una fecha aleatoria del entrenamiento"
+                    if window else "episodios completos")
+    budget_q = f"{cfg['q_episodes']} × {window}" if window else f"{cfg['q_episodes']} × {manifest['splits']['train']['transitions']}"
     text = f"""# Aprendizaje por refuerzo para decidir la exposición a BTC/USDT
 
 ## Alcance y pregunta de investigación
@@ -131,7 +143,7 @@ La versión inicial es r1 = 100 log[V(t+1)/V(t)]. Incluye las comisiones dentro 
 
 La versión revisada es r2 = 100 {{log[V(t+1)/V(t)] - lambda × min(g, 0)^2}}, con g = V(t+1)/V(t)-1 y lambda = {cfg['risk_lambda']:.1f}. El segundo término penaliza pérdidas netas grandes. El factor 100 es fijo en ambas versiones y solo cambia la escala. La penalización adicional cambia el objetivo económico y puede favorecer quedarse en efectivo.
 
-Se entrenó primero la versión log y después la versión risk de cada algoritmo. La comparación utiliza validación; lambda y el presupuesto de entrenamiento se fijaron antes de abrir la prueba. Para {labels[selected['method']]}, log presentó retorno medio {log_v['return'].mean():.2%}, drawdown {log_v.max_drawdown.mean():.2%} y tiempo en efectivo {log_v.cash_fraction.mean():.2%}. Risk presentó retorno {risk_v['return'].mean():.2%}, drawdown {risk_v.max_drawdown.mean():.2%} y tiempo en efectivo {risk_v.cash_fraction.mean():.2%}. Esos datos permiten revisar si el cambio redujo pérdidas o si restringió demasiado la participación.
+Se entrenó primero la versión log y después la versión risk de cada algoritmo. La comparación utiliza validación; lambda y el presupuesto de entrenamiento se fijaron antes de abrir la prueba. Para {labels[selected['method']]}, log presentó retorno medio {log_v['return'].mean():.2%}, drawdown {log_v.max_drawdown.mean():.2%} y tiempo en efectivo {log_v.cash_fraction.mean():.2%}. Risk presentó retorno {risk_v['return'].mean():.2%}, drawdown {risk_v.max_drawdown.mean():.2%} y tiempo en efectivo {risk_v.cash_fraction.mean():.2%}. Esos datos permiten revisar si el cambio redujo pérdidas o si restringió demasiado la participación.{turnover_text}
 
 La hipótesis de la segunda versión fue controlar las pérdidas diarias; no se afirma que su coeficiente sea óptimo. Las diferencias entre versiones son evidencia descriptiva de esta ejecución, no una prueba causal aislada de la penalización.
 
@@ -145,7 +157,7 @@ Un puntaje alto de recompensa no basta para preferir una estrategia: quedarse fu
 
 ## Algoritmos y entrenamiento
 
-Q-learning utiliza una tabla de 243 estados y 3 acciones. Discretiza momentum de 5 y 20 días y volatilidad estandarizados con cortes -0,5 y 0,5; el peso con 0,25 y 0,75; y el drawdown con -0,15 y -0,05. Descarta dos indicadores del estado completo para contener el número de celdas. Usa alpha = 0,1, gamma = 0,99 y {cfg['q_episodes']} episodios completos. Epsilon baja linealmente de 1 a 0,05 en el primer 80 % de episodios. En evaluación se elige argmax; los empates favorecen la acción cero, lo cual puede sesgar estados sin visitas hacia efectivo.
+Q-learning utiliza una tabla de 243 estados y 3 acciones. Discretiza momentum de 5 y 20 días y volatilidad estandarizados con cortes -0,5 y 0,5; el peso con 0,25 y 0,75; y el drawdown con -0,15 y -0,05. Descarta dos indicadores del estado completo para contener el número de celdas. Usa alpha = 0,1, gamma = 0,99 y {cfg['q_episodes']} {episode_text}. Epsilon baja linealmente de 1 a 0,05 en el primer 80 % de episodios. En evaluación se elige argmax; los empates favorecen la acción cero, lo cual puede sesgar estados sin visitas hacia efectivo.
 
 DQN aproxima $Q(s,a)$ con una red de siete entradas, dos capas ocultas de 64 unidades con ReLU y tres salidas. La arquitectura es deliberadamente pequeña porque el estado es de baja dimensión y el objetivo es evitar complejidad innecesaria. Usa CPU y una hebra de PyTorch.
 
@@ -165,7 +177,7 @@ DQN aproxima $Q(s,a)$ con una red de siete entradas, dos capas ocultas de 64 uni
 
 El entrenamiento termina al agotar {cfg['timesteps']} pasos, sin parada temprana basada en prueba, y se guarda el último modelo.
 
-Semillas de entrenamiento y del baseline aleatorio: {cfg['seeds']}. La política de evaluación DQN es determinista. Las semillas replican la inicialización y la exploración, no crean nuevos mercados independientes. El número de interacciones de Q-learning es {cfg['q_episodes']} × {manifest['splits']['train']['transitions']}; el de DQN es {cfg['timesteps']}. La comparación no iguala el presupuesto de cómputo. Repetir episodios reutiliza el mismo recorrido histórico y puede producir memorización.
+Semillas de entrenamiento y del baseline aleatorio: {cfg['seeds']}. La política de evaluación DQN es determinista. Las semillas replican la inicialización y la exploración, no crean nuevos mercados independientes. El número de interacciones de Q-learning es {budget_q}; el de DQN es {cfg['timesteps']}. La comparación no iguala el presupuesto de cómputo. Repetir episodios reutiliza el mismo recorrido histórico y puede producir memorización.
 
 ![Curvas de entrenamiento](learning_curves.png)
 
@@ -173,7 +185,7 @@ Las curvas muestran una media móvil dentro de cada entrenamiento. Sus alturas n
 
 ## Protocolo de evaluación
 
-Se entrenan cuatro candidatos: cada algoritmo con cada recompensa. La regla de selección, fijada antes de prueba, es la media entre semillas de retorno de validación menos 0,5 veces el valor absoluto del drawdown máximo de validación. Este coeficiente expresa una preferencia explícita por limitar pérdidas; otra preferencia podría elegir otro candidato.
+Se entrenan {n_cand} candidatos: cada algoritmo con cada recompensa. La regla de selección, fijada antes de prueba, es la media entre semillas de retorno de validación menos 0,5 veces el valor absoluto del drawdown máximo de validación. Este coeficiente expresa una preferencia explícita por limitar pérdidas; otra preferencia podría elegir otro candidato.
 
 El archivo selection_frozen.json conserva la selección antes de ejecutar los recorridos finales. Se elige una combinación de algoritmo y recompensa, sin escoger la semilla ganadora. No se reentrena con validación. Se evalúan sus tres réplicas en prueba y también se muestran los otros candidatos como auditoría descriptiva. Sus resultados finales no cambian la selección ni los parámetros.
 

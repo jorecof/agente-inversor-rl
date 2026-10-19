@@ -37,10 +37,11 @@ def main():
 
     def env(reward):
         return InvestmentEnv(df, x, start, end, initial_capital=cfg["initial_capital"],
-                             cost_rate=cfg["cost_rate"], reward_mode=reward, risk_lambda=cfg["risk_lambda"])
+                             cost_rate=cfg["cost_rate"], reward_mode=reward, risk_lambda=cfg["risk_lambda"],
+                             turnover_kappa=cfg.get("turnover_kappa", 0.005))
 
     for kind in ["qlearning", "dqn"]:
-        for reward in ["log", "risk"]:
+        for reward in cfg.get("rewards", ["log", "risk"]):
             for seed in cfg["seeds"]:
                 name = f"{kind}_{reward}_{seed}"
                 prefix = run/"models"/name
